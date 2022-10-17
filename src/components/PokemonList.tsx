@@ -1,16 +1,14 @@
 import styled from "@emotion/styled";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import loading from "../assets/loading.gif";
-import useInterSectionObserver from "../hooks/useInterSectionObserver";
 import { PokemonResponse } from "../types";
 import { formatNumbering } from "../utils";
 
 const Base = styled.div`
   margin-top: 24px;
-  overflow: hidden scroll;
-  height: 100vh;
 `;
 
 const LoadingWrapper = styled.div`
@@ -68,14 +66,8 @@ const getImageUrl = (pokemonIndex: number): string =>
 
 export default function PokemonList() {
   // const { isLoading, isError, data } = usePokemon();
-  const ref = useRef<Element>();
-  const rootRef = useRef();
-  const entry = useInterSectionObserver(ref, {
-    threshold: 0,
-    root: null,
-    rootMargin: "0px",
-  });
-  const isIntersecting = !!entry?.isIntersecting;
+  const { ref, inView } = useInView();
+
   const {
     status,
     data,
@@ -106,13 +98,14 @@ export default function PokemonList() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log(isIntersecting);
-    isIntersecting && fetchNextPage();
-  }, [isIntersecting]);
-
-  useEffect(() => {
     console.log(data);
   }, [data]);
+
+  useEffect(() => {
+    if (inView) {
+      fetchNextPage();
+    }
+  }, [inView]);
 
   return (
     <Base>
@@ -137,7 +130,6 @@ export default function PokemonList() {
         </List>
       )}
       <div ref={ref}></div>
-      {/* <button onClick={() => fetchNextPage()}>more load</button> */}
     </Base>
   );
 }
