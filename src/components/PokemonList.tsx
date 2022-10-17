@@ -1,12 +1,16 @@
 import styled from "@emotion/styled";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import loading from "../assets/loading.gif";
-import usePokemon from "../hooks/usePokemon";
+import useInterSectionObserver from "../hooks/useInterSectionObserver";
 import { PokemonResponse } from "../types";
 import { formatNumbering } from "../utils";
 
 const Base = styled.div`
   margin-top: 24px;
+  overflow: hidden scroll;
+  height: 100vh;
 `;
 
 const LoadingWrapper = styled.div`
@@ -63,28 +67,77 @@ const getImageUrl = (pokemonIndex: number): string =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonIndex}.png`;
 
 export default function PokemonList() {
-  const { isLoading, isError, data } = usePokemon();
+  // const { isLoading, isError, data } = usePokemon();
+  const ref = useRef<Element>();
+  const rootRef = useRef();
+  const entry = useInterSectionObserver(ref, {
+    threshold: 0,
+    root: null,
+    rootMargin: "0px",
+  });
+  const isIntersecting = !!entry?.isIntersecting;
+  const {
+    status,
+    data,
+    error,
+    isFetching,
+    isFetchingNextPage,
+    isFetchingPreviousPage,
+    fetchNextPage,
+    fetchPreviousPage,
+    hasNextPage,
+    hasPreviousPage,
+  } = useInfiniteQuery(
+    ["pocketmonInfinite"],
+    async ({ pageParam }) => {
+      const data = await fetch(
+        pageParam ? pageParam : "https://pokeapi.co/api/v2/pokemon?limit=20"
+      )
+        .then((raw) => raw.json())
+        .then((data) => data);
+      console.log(data);
+      return data;
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.next,
+      getPreviousPageParam: (firstPage) => firstPage.previous,
+    }
+  );
   const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log(isIntersecting);
+    isIntersecting && fetchNextPage();
+  }, [isIntersecting]);
+
+  useEffect(() => {
+    console.log(data);
+  }, [data]);
+
   return (
     <Base>
-      {isLoading || isError ? (
+      {isFetching ? (
         <LoadingWrapper>
           <Loading src={loading} alt="loading" />
         </LoadingWrapper>
       ) : (
         <List>
-          {data?.results.map((pokemon: PokemonResponse, idx: number) => (
-            <ListItem
-              key={pokemon.name}
-              onClick={() => navigate(`/${idx + 1}`)}
-            >
-              <Image src={getImageUrl(idx + 1)} />
-              <Name>{pokemon.name}</Name>
-              <Index>{formatNumbering(String(idx + 1))}</Index>
-            </ListItem>
-          ))}
+          {data?.pages.map((page, idx1) =>
+            page?.results.map((pokemon: PokemonResponse, idx2: number) => (
+              <ListItem
+                key={pokemon.name}
+                onClick={() => navigate(`/${idx2 + 1 + idx1 * 20}`)}
+              >
+                <Image src={getImageUrl(idx2 + 1 + idx1 * 20)} />
+                <Name>{pokemon.name}</Name>
+                <Index>{formatNumbering(String(idx2 + 1 + idx1 * 20))}</Index>
+              </ListItem>
+            ))
+          )}
         </List>
       )}
+      <div ref={ref}></div>
+      {/* <button onClick={() => fetchNextPage()}>more load</button> */}
     </Base>
   );
 }
