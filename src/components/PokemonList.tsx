@@ -3,7 +3,6 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
-import loading from "../assets/loading.gif";
 import { PokemonResponse } from "../types";
 import { formatNumbering } from "../utils";
 
@@ -109,26 +108,21 @@ export default function PokemonList() {
 
   return (
     <Base>
-      {isFetching ? (
-        <LoadingWrapper>
-          <Loading src={loading} alt="loading" />
-        </LoadingWrapper>
-      ) : (
-        <List>
-          {data?.pages.map((page, idx1) =>
-            page?.results.map((pokemon: PokemonResponse, idx2: number) => (
-              <ListItem
-                key={pokemon.name}
-                onClick={() => navigate(`/${idx2 + 1 + idx1 * 20}`)}
-              >
-                <Image src={getImageUrl(idx2 + 1 + idx1 * 20)} />
-                <Name>{pokemon.name}</Name>
-                <Index>{formatNumbering(String(idx2 + 1 + idx1 * 20))}</Index>
-              </ListItem>
-            ))
-          )}
-        </List>
-      )}
+      <List>
+        {data?.pages.map((page, idx1) =>
+          page?.results.map((pokemon: PokemonResponse, idx2: number) => (
+            <ListItem
+              key={pokemon.name}
+              onClick={() => navigate(`/${idx2 + 1 + idx1 * 20}`)}
+            >
+              <Image src={getImageUrl(idx2 + 1 + idx1 * 20)} />
+              <Name>{pokemon.name}</Name>
+              <Index>{formatNumbering(String(idx2 + 1 + idx1 * 20))}</Index>
+            </ListItem>
+          ))
+        )}
+      </List>
+
       <div ref={ref}></div>
     </Base>
   );
